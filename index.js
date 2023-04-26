@@ -1,35 +1,51 @@
-const taskInput = document.querySelector(".task-input input");
+const taskInput = document.querySelector(".task-input input"),
+filters = document.querySelectorAll(".filters span"),
+clearAll = document.querySelector(".clear-btn"),
 taskBox = document.querySelector(".task-box");
+
+let editId;
+let isEditedTask = false;
 
 // getting localStorage todo-list
 let todos = JSON.parse(localStorage.getItem("todo-list"));
 
-function showTodo(){
+filters.forEach(btn => {
+    btn.addEventListener("click", () => {
+        console.log(btn)
+        document.querySelector("span.active").classList.remove("active");
+        btn.classList.add("active");
+        showTodo(btn.id);
+    })
+})
+
+function showTodo(filter){
     let li = "";
     if(todos){
     todos.forEach((todo,id) => {
         console.log(todo,id)
-        //if todo status is compreted, set the isCompleted value to checked
+        //if todo status is completed, set the isCompleted value to checked
         let isCompleted = todo.status == "completed" ? "checked" : "";
-        li += `
-        <li class="task">
-                <label for="${id}">
-                    <input onclick ="updateStatus(this)" type="checkbox" id="${id}" ${isCompleted}>
-                    <p class="${isCompleted}">${todo.name}</p>
-                </label>
-                <div class="settings">
-                    <i onclick="showMenu(this)" class="uil uil-ellipsis-h"></i>
-                    <ul class="task-menu">
-                        <li><i class="uil uil-pen"></i>Edit</li>
-                        <li onclick="deleteTask(${id})" ><i class="uil uil-trash"></i>Delete</li>
-                    </ul>
-                </div>
-            </li>
-        `;
+        if(filter == todo.status || filter == "all"){
+            li += `
+            <li class="task">
+                    <label for="${id}">
+                        <input onclick ="updateStatus(this)" type="checkbox" id="${id}" ${isCompleted}>
+                        <p class="${isCompleted}">${todo.name}</p>
+                    </label>
+                    <div class="settings">
+                        <i onclick="showMenu(this)" class="uil uil-ellipsis-h"></i>
+                        <ul class="task-menu">
+                            <li onclick="editTask(${id}, '${todo.name}')" ><i class="uil uil-pen"></i>Edit</li>
+                            <li onclick="deleteTask(${id})" ><i class="uil uil-trash"></i>Delete</li>
+                        </ul>
+                    </div>
+                </li>
+            `;
+        }
     });
-    taskBox.innerHTML = li
+    taskBox.innerHTML = li || `<span> You don't have any task here<span>`
 }}
-showTodo();
+showTodo("all");
 
 function showMenu(selectedTask){
     //getting task menu div
@@ -43,12 +59,26 @@ function showMenu(selectedTask){
     })
 }
 
+function editTask(taskId, taskName){
+    console.log(taskId,taskName);
+    editId = taskId;
+    isEditedTask = true;
+    taskInput.value = taskName;
+}
+
 function deleteTask(deleteId){
     //removing selected task from array/todos
     todos.splice(deleteId, 1);
     localStorage.setItem("todo-list", JSON.stringify(todos));
-    showTodo();
+    showTodo("all");
 }
+
+clearAll.addEventListener("click", () => {
+    //removing all task
+    todos.splice(0, todos.length);
+    localStorage.setItem("todo-list", JSON.stringify(todos));
+    showTodo("all");
+})
 
 function updateStatus(selectedTask){
     //getting paragraph that contains task name
@@ -67,18 +97,22 @@ function updateStatus(selectedTask){
 
 taskInput.addEventListener("keyup", e =>{
     let userTask = taskInput.value.trim();
-    if(e.key == "Enter"){
-        if(!todos){ //if todos isnt exist, pass an empty array to todos
-            todos =[];
+    if(e.key == "Enter" && userTask){
+        if(!isEditedTask){//if isEditedTask isn't tru
+            if(!todos){ //if todos isnt exist, pass an empty array to todos
+                todos =[];
+            }
+            let taskInfo = {
+                name: userTask,
+                status: "pending"
+            };
+            todos.push(taskInfo);//adding new task to todos
+        }else{
+            todos[editId].name = userTask;
+            isEditedTask = true;
         }
-
         taskInput.value = "";
-        let taskInfo = {
-            name: userTask,
-            status: "pending"
-        };
-        todos.push(taskInfo);//adding new task to todos
         localStorage.setItem("todo-list", JSON.stringify(todos));//transform in string
-        showTodo();
+        showTodo("all");
     }
 })
